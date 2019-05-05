@@ -1,0 +1,16 @@
+{
+  "sys_path": "/home/zachary/projects/usc_dae",
+  "vector_cache_path": "/home/zachary/hdd/nlp/glove.6B",
+  "data_dict": {
+    "gigaword": {
+      "data_path": "/home/zachary/hdd/nlp/sumdata/train/train.article.txt",
+      "vocab_path": "/home/zachary/hdd/nlp/sumdata/train/voca.set.txt"
+    }
+  },
+  "log_folder_path": "/home/zachary/hdd/usc_dae/logs",
+  "model_save_path": "/home/zachary/hdd/usc_dae/saves",
+  "nli_vector_file_name": "path_to_infersent",
+  "nli_code_path": "path_to_infersent_code",
+  "nli_pickle_path": "path_to_nli_saved_model",
+  "use_gpu": true
+}

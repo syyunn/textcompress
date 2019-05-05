@@ -1,0 +1,4 @@
+torch==0.3.1
+numpy
+pandas
+attrs
