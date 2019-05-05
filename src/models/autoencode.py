@@ -9,10 +9,18 @@ import src.models.length_control as length_control
 
 
 def get_autoencode_loss(sent_batch,
-                        encoder, decoder, generator,
-                        corpus, dictionary, device, word_embeddings, max_length,
-                        ae_noising, ae_noising_kind,
-                        init_decoder_with_nli=False, nli_model=None,
+                        encoder,
+                        decoder,
+                        generator,
+                        corpus,
+                        dictionary,
+                        device,
+                        word_embeddings,
+                        max_length,
+                        ae_noising,
+                        ae_noising_kind,
+                        init_decoder_with_nli=False,
+                        nli_model=None,
                         nli_mapper_mode=None,
                         ae_add_noise_perc_per_sent_low=None,
                         ae_add_noise_perc_per_sent_high=None,
@@ -20,21 +28,27 @@ def get_autoencode_loss(sent_batch,
                         ae_add_noise_2_grams=None,
                         length_countdown_mode=None,
                         ):
+
     batch_size = len(sent_batch)
 
     if ae_noising:
+
         if ae_noising_kind == "additive":
             input_sent_batch = additive_noise(
                 sent_batch=sent_batch,
-                lengths=[len(data.tokenize(sent)) for sent in sent_batch],
+                lengths=[len(data.tokenize(sent))
+                         for sent in sent_batch],
                 corpus=corpus,
                 ae_add_noise_perc_per_sent_low=ae_add_noise_perc_per_sent_low,
                 ae_add_noise_perc_per_sent_high=ae_add_noise_perc_per_sent_high,
                 ae_add_noise_num_sent=ae_add_noise_num_sent,
                 ae_add_noise_2_grams=ae_add_noise_2_grams,
             )
+
         else:
-            raise NotImplementedError(f'{ae_noising_kind} noise is not implemented')
+
+            raise NotImplementedError(f'{ae_noising_kind} '
+                                      f'noise is not implemented')
 
         target_ids, target_lengths, oov_dicts = dictionary.sentences2ids(
             sent_batch, sos=False, eos=True)
@@ -43,15 +57,18 @@ def get_autoencode_loss(sent_batch,
             given_oov_dicts=oov_dicts)
         target_ids_batch = device(Variable(torch.LongTensor(target_ids)))
         input_ids_batch = device(Variable(torch.LongTensor(input_ids)))
+
     else:
+
         target_ids, target_lengths, oov_dicts = dictionary.sentences2ids(
-            sent_batch, sos=False, eos=True)
+            sent_batch,
+            sos=False,
+            eos=True)
         target_ids_batch = device(Variable(torch.LongTensor(target_ids)))
 
         input_sent_batch = sent_batch
         input_ids, input_lengths = target_ids, target_lengths
         input_ids_batch = target_ids_batch
-
 
     hidden = device(encoder.initial_hidden(batch_size))
 
@@ -71,8 +88,11 @@ def get_autoencode_loss(sent_batch,
                 batch_size=batch_size,
             )
     elif length_countdown_mode == "none":
-        rows_tensor = max(max_length, max(input_lengths))
-        autoencode_length_countdown = torch.zeros((rows_tensor, batch_size, 1))
+        rows_tensor = max(max_length,
+                          max(input_lengths))
+        autoencode_length_countdown = torch.zeros((rows_tensor,
+                                                   batch_size, 1))
+
     elif length_countdown_mode != "normal":
         raise NotImplemented
 
@@ -86,19 +106,28 @@ def get_autoencode_loss(sent_batch,
 
     # Auto-encoding always uses teacher-forcing
     autoencode_ids, _, _ = dictionary.sentences2ids(
-        sent_batch, sos=True, eos=False, given_oov_dicts=oov_dicts)
+        sent_batch,
+        sos=True,
+        eos=False,
+        given_oov_dicts=oov_dicts)
+
     autoencode_ids_batch = \
         device(Variable(torch.LongTensor(autoencode_ids))).transpose(0, 1)
+
     autoencode_length_countdown = \
         autoencode_length_countdown[:autoencode_ids_batch.shape[0]]
 
     if init_decoder_with_nli:
         if nli_mapper_mode in {0, 1, 2}:
             output = decoder.nli_mapper(device(Variable(
-                torch.FloatTensor(nli_model.encoder.encode(sent_batch))
+                torch.FloatTensor(
+                    nli_model.encoder.encode(
+                        sent_batch))
             )))
         elif nli_mapper_mode == 3:
-            output = device(decoder.initial_output(batch_size))
+            output = device(
+                decoder.initial_output(
+                    batch_size))
             hidden = decoder.nli_mapper(hidden, device(Variable(
                 torch.FloatTensor(nli_model.encoder.encode(sent_batch))
             )))
@@ -127,9 +156,14 @@ def get_autoencode_loss(sent_batch,
         lengths=target_lengths,
         device=device,
     )
+
     return (
-        autoencode_loss, autoencode_logprobs,
-        oov_dicts, input_ids, target_ids, autoencode_length_target
+        autoencode_loss,
+        autoencode_logprobs,
+        oov_dicts,
+        input_ids,
+        target_ids,
+        autoencode_length_target
     )
 
 
@@ -166,9 +200,6 @@ def additive_noise(sent_batch,
         for sent in split_sent_batch
     ]
     return noised_sent_batch
-
-
-
 
 
 def resolve_special_vocab(data_top_words_path):

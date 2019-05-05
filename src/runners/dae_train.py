@@ -32,7 +32,9 @@ class DAETrainer:
                  special_vocab,
                  verbose=False,
                  ):
-        assert isinstance(config, conf.Configuration)
+        assert isinstance(config,
+                          conf.Configuration)
+
         self.config = config
         self.device = device
 
@@ -56,7 +58,8 @@ class DAETrainer:
             run_name=self.config.run_name,
             timestamp=self.creation_date,
         )
-        self.logger = logs.SimpleFileLogger(open(self.log_path, "a"))
+        self.logger = logs.SimpleFileLogger(
+            open(self.log_path, "a"))
         if verbose:
             print(self.config.to_json())
 
@@ -120,7 +123,12 @@ class DAETrainer:
     def autoencode_step(self):
         sent_batch = self.corpus.next_batch(self.config.batch_size)
 
-        raw_autoencode_loss, autoencode_logprobs, oov_dicts, input_ids, target_ids, target_lengths = \
+        raw_autoencode_loss, \
+        autoencode_logprobs, \
+        oov_dicts, \
+        input_ids, \
+        target_ids, \
+        target_lengths = \
             autoencode.get_autoencode_loss(
                 sent_batch=sent_batch,
                 encoder=self.model.encoder,
@@ -141,10 +149,12 @@ class DAETrainer:
                 ae_add_noise_num_sent=self.config.ae_add_noise_num_sent,
                 length_countdown_mode=self.config.length_countdown,
             )
+
         autoencode_loss = (
             raw_autoencode_loss * self.config.autoencode_loss_multiplier
         )
 
+        # Length Loss
         if self.config.length_penalty_multiplier != 0:
             raw_length_penalty = length_control.get_length_penalty(
                 log_probs=autoencode_logprobs,
@@ -156,6 +166,8 @@ class DAETrainer:
                 raw_length_penalty * self.config.length_penalty_multiplier
         else:
             length_penalty = self.device(operations.zero_loss())
+
+        # InferSent Loss
 
         loss = autoencode_loss + length_penalty
         loss.backward()

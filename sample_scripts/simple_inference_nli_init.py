@@ -55,10 +55,13 @@ def run_inference(model_path, data_path, beam_k=None, output_path=None):
 
     for translations, all_logprobs, sent_batch in \
             inf.corpus_inference_nli_init(corpus, lambda _: _//2 + 1,
-                                          batch_size=16, nli_model=nli_model):
+                                          batch_size=16,
+                                          nli_model=nli_model):
         oov_dicts = dictionary.get_oov_dicts(sent_batch)
         for line in dictionary.ids2sentences(
-                translations, oov_dicts, oov_fallback=True):
+                translations,
+                oov_dicts,
+                oov_fallback=True):
             write(line)
 
 

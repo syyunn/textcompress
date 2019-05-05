@@ -31,7 +31,11 @@ class Inference:
             yield (translations, all_logprobs, sent_batch)
 
     def corpus_inference_nli_init(
-            self, corpus, desired_length_func, nli_model, batch_size=None):
+            self,
+            corpus,
+            desired_length_func,
+            nli_model,
+            batch_size=None):
         if batch_size is None:
             batch_size = self.config.batch_size
         for sent_batch in corpus.batch_generator(batch_size):
@@ -40,9 +44,13 @@ class Inference:
                 for sentence in sent_batch
             ]
             translations, all_logprobs = self.batch_inference_nli_init(
-                sent_batch, desired_length, nli_model
+                sent_batch,
+                desired_length,
+                nli_model
             )
-            yield (translations, all_logprobs, sent_batch)
+            yield (translations,
+                   all_logprobs,
+                   sent_batch)
 
     def single_nli_inference(self, sentence, nli_model,
                              min_desired_length, max_desired_length,

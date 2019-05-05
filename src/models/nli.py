@@ -9,7 +9,11 @@ from torch.autograd import Variable
 
 
 def get_nli_model(
-        nli_code_path, nli_pickle_path, glove_path, word_list, verbose=True):
+        nli_code_path,
+        nli_pickle_path,
+        glove_path,
+        word_list,
+        verbose=True):
     assert os.path.exists(nli_code_path)
     sys.path += [nli_code_path]
     if verbose:
@@ -31,8 +35,14 @@ def get_nli_model(
     return nli_net
 
 
-def get_nli_loss(gs_onehot, gs_lengths, target_ids, target_lengths,
-                 nli_model, encoder, word_embeddings, device):
+def get_nli_loss(gs_onehot,
+                 gs_lengths,
+                 target_ids,
+                 target_lengths,
+                 nli_model,
+                 encoder,
+                 word_embeddings,
+                 device):
     batch_size = gs_onehot.shape[0]
     pred_embeddings = encoder.embed_onehot(
         onehot=gs_onehot,
@@ -45,18 +55,26 @@ def get_nli_loss(gs_onehot, gs_lengths, target_ids, target_lengths,
         include_special=False,
     )
     nli_logprobs = nli_model(
-        (pred_embeddings.transpose(0, 1), np.array(gs_lengths)),
-        (true_embeddings.transpose(0, 1), np.array(target_lengths)),
+        (pred_embeddings.transpose(0, 1),
+         np.array(gs_lengths)),
+        (true_embeddings.transpose(0, 1),
+         np.array(target_lengths)),
     )
     nli_loss = torch.nn.NLLLoss()(
         nli_logprobs,
         Variable(device(torch.LongTensor([0]*batch_size)))
     )
+
     return nli_loss, nli_logprobs
 
 
-def resolve_nli_model(nli_code_path, nli_pickle_path, glove_path, word_list,
-                      nli_loss_multiplier, init_decoder_with_nli, device):
+def resolve_nli_model(nli_code_path,
+                      nli_pickle_path,
+                      glove_path,
+                      word_list,
+                      nli_loss_multiplier,
+                      init_decoder_with_nli,
+                      device):
     if nli_loss_multiplier or init_decoder_with_nli:
         return device(get_nli_model(
             nli_code_path=nli_code_path,
@@ -105,7 +123,8 @@ class NLIMapper(torch.nn.Module):
         infersent_repeated = infersent_input.expand(
             encoder_hidden.shape[0], *infersent_input.shape)
         nli_output = F.relu(self.linear(
-            torch.cat([encoder_hidden, infersent_repeated], dim=2))
+            torch.cat([encoder_hidden, infersent_repeated],
+                      dim=2))
         )
 
         return nli_output

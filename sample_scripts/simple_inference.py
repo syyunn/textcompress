@@ -31,9 +31,12 @@ def run_inference(model_path, data_path, beam_k=None, output_path=None):
         max_sentence_length=200,
     )
     inf = inference.Inference(
-        model=model, dictionary=dictionary,
-        word_embeddings=word_embeddings, device=device,
-        config=config, beam_k=beam_k,
+        model=model,
+        dictionary=dictionary,
+        word_embeddings=word_embeddings,
+        device=device,
+        config=config,
+        beam_k=beam_k,
     )
 
     if output_path is None:
@@ -41,6 +44,7 @@ def run_inference(model_path, data_path, beam_k=None, output_path=None):
             print(string)
     else:
         f = open(output_path, "w")
+
         def write(string):
             f.write(string + "\n")
 
