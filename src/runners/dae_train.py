@@ -27,17 +27,21 @@ nltk.download('punkt')
 model_version = 1  # version #1 is GloVe, #2 is FastText
 MODEL_PATH = "/home/zachary/hdd/preTrain/InferSent/infersent%s.pkl" \
              % model_version
-params_model = {'bsize': 128, # batch size being equalized to usc_dae default
+params_ifst_model = {'bsize': 128, # batch size being equalized to usc_dae default
                 'word_emb_dim': 300,
                 'enc_lstm_dim': 2048,
                 'pool_type': 'max',
                 'dpout_model': 0.0,
                 'version': model_version}
 
-model = infersent.InferSent(params_model)
-model.load_state_dict(torch.load(MODEL_PATH))
+ifst_model = infersent.InferSent(params_ifst_model)
+ifst_model.load_state_dict(torch.load(MODEL_PATH))
 use_cuda = torch.cuda.is_available()
-model = model.cuda() if use_cuda else model
+model = ifst_model.cuda() if use_cuda else ifst_model
+# # Freeze the layers just to use the sentEmbedding
+for param in ifst_model.parameters():
+    param.requires_grad = False
+
 W2V_PATH = '/home/zachary/hdd/nlp/glove.6B/glove.6B.300d.txt' \
     if model_version == 1 else '../dataset/fastText/crawl-300d-2M-subword.vec'
 model.set_w2v_path(W2V_PATH)
@@ -153,8 +157,8 @@ class DAETrainer:
     def autoencode_step(self):
         sent_batch = self.corpus.next_batch(
             self.config.batch_size)
-        print("sent_batch", sent_batch)
-        print("sent_batch_length", len(sent_batch))
+        # print("sent_batch", sent_batch)
+        # print("sent_batch_length", len(sent_batch))
 
         raw_autoencode_loss, \
         autoencode_logprobs, \
@@ -200,10 +204,72 @@ class DAETrainer:
         else:
             length_penalty = self.device(operations.zero_loss())
 
-        # InferSent Loss
-        # raw_autoencode_loss = nli.get_nli_loss()
+        # --- Added by Zachary; InferSent inference/Loss ####################
+        # First, let raw input(sent_batch) get through the model
+        ifst_encoding_of_original_input = ifst_model.encode(sent_batch)
+        # print("ifst_encoding_of_original_input.shape", ifst_encoding_of_original_input.shape)
+        # print("ifst_encoding_of_original_input", ifst_encoding_of_original_input)
 
-        loss = autoencode_loss + length_penalty
+        ifst_encoding_of_output = np.ndarray(shape=(128, 4096),
+                                             dtype=float)
+
+        # Second, let output sentences get through the model
+        # TODO: NEED TO VECTORIZE FOLLOWING FOR-LOOP
+
+        # def row_wise_output_sentmaker(row_slice, axis):
+        #     print(row_slice[:, ].shape)
+        #     output_sentence = self.dictionary.rawids2sentence(
+        #         row_slice.max(1)[
+        #             1].data.cpu().numpy(),
+        #         oov_dicts[i],
+        #     )
+        #     return output_sentence
+        #
+        # print(autoencode_logprobs.shape)
+        # print(autoencode_logprobs[:].shape)
+
+        # cp_autoencode_logprobs = autoencode_logprobs.cpu().data.numpy()
+        # print("cp", cp_autoencode_logprobs.shape)
+        #
+        # output_batch = np.apply_over_axes(row_wise_output_sentmaker,
+        #                                   cp_autoencode_logprobs,
+        #                                   [1])
+        #
+        # print(output_batch)
+
+        for i in range(128):
+
+            # print("before_max_shape:", autoencode_logprobs[:, i].shape)
+            # print("autoencode_max(1): ", autoencode_logprobs[:, i].max(1))
+            # print("autoencode_max(1)[1]: ", autoencode_logprobs[:, i].max(1)[1])
+
+            output_sent = self.dictionary.rawids2sentence(
+                autoencode_logprobs[:, i].max(1)[
+                    1].data.cpu().numpy(),
+                oov_dicts[i],
+            )
+            output_sent_encoding = ifst_model.encode([output_sent])
+
+            ifst_encoding_of_output[i] = output_sent_encoding
+
+        ifst_encoding_of_original_input = self.device(torch.from_numpy(
+            ifst_encoding_of_original_input).float())
+        ifst_encoding_of_output = self.device(torch.from_numpy(
+            ifst_encoding_of_output).float())
+
+        # Third, Calculate Loss
+        criterion = torch.nn.MSELoss()
+        ifst_mse = criterion(ifst_encoding_of_original_input,
+                             ifst_encoding_of_output) * 2000
+        print("ifst_mse", ifst_mse.data.cpu().numpy())
+
+        ######################################################################
+
+        # loss = autoencode_loss + length_penalty
+        # print("autoencode_loss: " + str(autoencode_loss.data.cpu().numpy()))
+        # print("length_penalty: " + str(length_penalty.data.cpu().numpy()))
+
+        loss = autoencode_loss + length_penalty + ifst_mse
         print("autoencode_loss: " + str(autoencode_loss.data.cpu().numpy()))
         print("length_penalty: " + str(length_penalty.data.cpu().numpy()))
 
