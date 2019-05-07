@@ -6,7 +6,10 @@ import src.utils.devices as devices
 import src.runners.inference as inference
 
 
-def run_inference(model_path, data_path, beam_k=None, output_path=None):
+def run_inference(model_path,
+                  data_path,
+                  beam_k=None,
+                  output_path=None):
     loaded_model = torch.load(
         model_path
     )
@@ -41,7 +44,9 @@ def run_inference(model_path, data_path, beam_k=None, output_path=None):
 
     if output_path is None:
         def write(string):
+            print("output_path is none! just print string")
             print(string)
+            pass
     else:
         f = open(output_path, "w")
 
@@ -51,18 +56,32 @@ def run_inference(model_path, data_path, beam_k=None, output_path=None):
     for translations, all_logprobs, sent_batch in \
             inf.corpus_inference(corpus, lambda _: _//2 + 1, batch_size=16):
         oov_dicts = dictionary.get_oov_dicts(sent_batch)
+
+        batch_count = 0
         for line in dictionary.ids2sentences(
                 translations, oov_dicts, oov_fallback=True):
-            write(line)
+            write("[input] : " + sent_batch[batch_count])
+            batch_count += 1
+            if batch_count == 15:
+                batch_count = 0
+            write("[infrc] : " + line)
 
 
 if __name__ == "__main__":
+    model_path = "/home/zachary/hdd/usc_dae/saves/pc_4_lstm_nli_2g_2019.05.04.21.08.55.251_080000.p"
+    data_path = "/home/zachary/hdd/nlp/sumdata/train/valid.article.filter.txt"
+    output_path = "/home/zachary/hdd/usc_dae/infrc/result.txt"
     import argparse
     parser = argparse.ArgumentParser(description='Inference')
-    parser.add_argument('--model-path')
-    parser.add_argument('--data-path')
-    parser.add_argument('--beam-k', default=None, type=int)
-    parser.add_argument('--output-path', default=None)
+    parser.add_argument('--model-path',
+                        default=model_path)
+    parser.add_argument('--data-path',
+                        default=data_path)
+    parser.add_argument('--beam-k',
+                        default=None,
+                        type=int)
+    parser.add_argument('--output-path',
+                        default=output_path)
     args = parser.parse_args()
 
     run_inference(

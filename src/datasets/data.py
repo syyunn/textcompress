@@ -214,7 +214,10 @@ class HybridEmbeddings(nn.Module):
 
 
 class CorpusReader:
-    def __init__(self, sent_file, max_sentence_length=100, loop=True):
+    def __init__(self,
+                 sent_file,
+                 max_sentence_length=100,
+                 loop=True):
         """ 
         Reads in fixed order. 
         No cache for now. Should be easy to upgrade later
@@ -228,11 +231,14 @@ class CorpusReader:
         batch = []
         while len(batch) < batch_size:
             sent = self.sent_file.readline()
-            if sent == "":
+            if sent == "":  # if we hit the bottom of the text file..
+                            # (because we had read all)
                 self.epoch += 1
                 self.sent_file.seek(0)
             else:
+                # print(sent)
                 sent_length = len(tokenize(sent))
+                # print(sent.strip())
                 if sent_length < self.max_sentence_length:
                     batch.append(sent.strip())
         return batch
@@ -248,9 +254,12 @@ class CorpusReader:
                     self.reset()
                     return
                 else:
+                    #print(sent)
                     sent_length = len(tokenize(sent))
                     if sent_length < self.max_sentence_length:
-                        batch.append(sent.strip())
+                        batch.append(sent.strip()) # to clean up potential
+                        # redundant at the beginning/end of the sentence
+                    #print(sent.strip())
             yield batch
 
     def reset(self):

@@ -18,7 +18,10 @@ class Inference:
         self.config = config
         self.beam_k = beam_k
 
-    def corpus_inference(self, corpus, desired_length_func, batch_size=None):
+    def corpus_inference(self,
+                         corpus,
+                         desired_length_func,
+                         batch_size=None):
         if batch_size is None:
             batch_size = self.config.batch_size
         for sent_batch in corpus.batch_generator(batch_size):
@@ -105,10 +108,16 @@ class Inference:
 
     def batch_inference(self, sent_batch, desired_lengths):
         self.model.eval()
+        # print("I'm here")
+        # print(sent_batch)
+        # print(len(sent_batch))
         batch_size = len(sent_batch)
+        # print("I'm here")
 
-        ids, lengths = self.dictionary.sentences2ids(
-            sent_batch, sos=False, eos=True)
+        ids, lengths, _ = self.dictionary.sentences2ids(
+            sent_batch,
+            sos=False,
+            eos=True)
         ids_batch = self.device(Variable(torch.LongTensor(ids), volatile=True))
         hidden = self.device(self.model.encoder.initial_hidden(batch_size))
         length_input, length_target = \

@@ -13,7 +13,8 @@ test_vectors_path = test_data_fol / "test_vecs.txt"
 
 def test_corpus():
     with open(test_data_path) as f:
-        corpus = data.CorpusReader(f, max_sentence_length=100)
+        corpus = data.CorpusReader(f,
+                                   max_sentence_length=100)
         batch = corpus.next_batch(3)
         assert len(batch) == 3
         batch = corpus.next_batch(30)
@@ -22,7 +23,8 @@ def test_corpus():
 
 def test_dictionary():
     with open(test_data_path) as f:
-        corpus = data.CorpusReader(f, max_sentence_length=100)
+        corpus = data.CorpusReader(f,
+                                   max_sentence_length=100)
         batch = corpus.next_batch(3)
         words = sorted(list({w for s in batch for w in data.tokenize(s)}))
         dictionary = data.Dictionary(words)

@@ -18,6 +18,36 @@ import src.models.length_control as length_control
 import src.models.nli as nli
 import src.models.autoencode as autoencode
 
+# ---- Added by Zachary ; import raw-InferSent codes ##########################
+import src.models.infersent as infersent
+import nltk
+nltk.download('punkt')
+
+# # load pre-trained InferSent
+model_version = 1  # version #1 is GloVe, #2 is FastText
+MODEL_PATH = "/home/zachary/hdd/preTrain/InferSent/infersent%s.pkl" \
+             % model_version
+params_model = {'bsize': 128, # batch size being equalized to usc_dae default
+                'word_emb_dim': 300,
+                'enc_lstm_dim': 2048,
+                'pool_type': 'max',
+                'dpout_model': 0.0,
+                'version': model_version}
+
+model = infersent.InferSent(params_model)
+model.load_state_dict(torch.load(MODEL_PATH))
+use_cuda = torch.cuda.is_available()
+model = model.cuda() if use_cuda else model
+W2V_PATH = '/home/zachary/hdd/nlp/glove.6B/glove.6B.300d.txt' \
+    if model_version == 1 else '../dataset/fastText/crawl-300d-2M-subword.vec'
+model.set_w2v_path(W2V_PATH)
+
+# Load embeddings of K most frequent words
+model.build_vocab_k_words(K=100000)
+
+
+#####################################################
+
 
 class DAETrainer:
     def __init__(self,
@@ -121,7 +151,10 @@ class DAETrainer:
         print(f"Saved to: {save_path}")
 
     def autoencode_step(self):
-        sent_batch = self.corpus.next_batch(self.config.batch_size)
+        sent_batch = self.corpus.next_batch(
+            self.config.batch_size)
+        print("sent_batch", sent_batch)
+        print("sent_batch_length", len(sent_batch))
 
         raw_autoencode_loss, \
         autoencode_logprobs, \
@@ -168,8 +201,12 @@ class DAETrainer:
             length_penalty = self.device(operations.zero_loss())
 
         # InferSent Loss
+        # raw_autoencode_loss = nli.get_nli_loss()
 
         loss = autoencode_loss + length_penalty
+        print("autoencode_loss: " + str(autoencode_loss.data.cpu().numpy()))
+        print("length_penalty: " + str(length_penalty.data.cpu().numpy()))
+
         loss.backward()
         operations.clip_gradients(
             model=self.model,
@@ -179,10 +216,10 @@ class DAETrainer:
         self.optimizers.step()
 
         if self.step % self.config.log_step == 0:
-            print(self.step)
-            print(autoencode_loss.data)
-            print(length_penalty.data)
-            print(loss.data)
+            print("logging step: ", self.step)
+            # print(autoencode_loss.data)
+            # print(length_penalty.data)
+            # print(loss.data)
 
             content = "[{}] " \
                       "AUT={:.5f}, " \
@@ -249,6 +286,10 @@ class DAETrainer:
             rnn_type=config.rnn_type,
             dropout=config.encoder_dropout,
         ))
+
+        # Added by Zachary ; NLI encoder (Non-Trainable) #####################
+        # infersent_encoder = device(infersent.InferSent())
+
         if config.decoder_type == "attn":
             decoder_used = decoders.AttnRNNDecoder
         elif config.decoder_type == "rnn":
