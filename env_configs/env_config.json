@@ -4,7 +4,9 @@
   "data_dict": {
     "gigaword": {
       "data_path": "/home/zachary/hdd/nlp/sumdata/train/train.article.txt",
-      "vocab_path": "/home/zachary/hdd/nlp/sumdata/train/voca.set.txt"
+      "vocab_path": "/home/zachary/hdd/nlp/sumdata/train/article.voca.txt",
+      "data_path2": "/home/zachary/hdd/nlp/sumdata/train/train.title.txt",
+      "vocab_path2": "/home/zachary/hdd/nlp/sumdata/train/title.voca.txt"
     }
   },
   "log_folder_path": "/home/zachary/hdd/usc_dae/logs",

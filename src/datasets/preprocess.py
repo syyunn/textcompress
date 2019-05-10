@@ -26,5 +26,5 @@ if __name__ == "__main__":
     # else:
     #     print("attach sysArgv")
 
-    generate_vocabulary_file("/Users/zachary/project/usc_dae/sumdata/train/train.article.txt",
-                             "voca_set.txt")
+    generate_vocabulary_file("/home/zachary/hdd/nlp/sumdata/train/train.title.txt",
+                             "title.voca.txt")

@@ -146,14 +146,24 @@ class AttnRNNDecoder(nn.Module):
             raise RuntimeError(f"RNN type {self.rnn_type} not implemented")
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, ids, lengths, length_countdown,
-                word_embeddings, hidden, context,
-                context_mask, prev_output, generator):
+    def forward(self,
+                ids,
+                lengths,
+                length_countdown,
+                word_embeddings,
+                hidden,
+                context,
+                context_mask,
+                prev_output,
+                generator):
         embeddings = (
             word_embeddings(ids)
             + self.special_embeddings(data.special_ids(ids))
         )
-        rnn_input_batch = torch.cat((embeddings, length_countdown), dim=2)
+
+        rnn_input_batch = torch.cat((embeddings,
+                                     length_countdown),
+                                    dim=2)
 
         output = prev_output
         scores = []
@@ -168,9 +178,15 @@ class AttnRNNDecoder(nn.Module):
             scores.append(generator(output))
         return torch.stack(scores), hidden, output
 
-    def forward_decode(self, hidden, context,
-                       input_lengths, length_input,
-                       generator, word_embeddings, device, config,
+    def forward_decode(self,
+                       hidden,
+                       context,
+                       input_lengths,
+                       length_input,
+                       generator,
+                       word_embeddings,
+                       device,
+                       config,
                        decoder_init=None):
         batch_size = len(input_lengths)
         length_input = length_input.unsqueeze(1)

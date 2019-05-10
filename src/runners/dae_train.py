@@ -207,44 +207,50 @@ class DAETrainer:
                 raw_length_penalty * self.config.length_penalty_multiplier
         else:
             length_penalty = self.device(operations.zero_loss())
-
-        # --- Added by Zachary; InferSent inference/Loss ####################
-        # First, let raw input(sent_batch) get through the model
-        ifst_encoding_of_original_input = ifst_model.encode(sent_batch)
-
-        # Second, let output sentences get through the model
-        batch_max = autoencode_logprobs.transpose(0, 1).max(2)[1].\
-            data.cpu().numpy()
-
-        pool = mp.Pool(mp.cpu_count())
-        batch_output_sent = [pool.apply(self.dictionary.rawids2sentence,
-                                        args=(max_ids, oov_dict))
-                             for max_ids, oov_dict
-                             in zip(batch_max, oov_dicts)]
-        pool.close()
-        batch_output_sent_encoding = ifst_model.encode(batch_output_sent)
-
-        ifst_encoding_of_original_input = self.device(torch.from_numpy(
-            ifst_encoding_of_original_input).float())
-        ifst_encoding_of_output = self.device(torch.from_numpy(
-            batch_output_sent_encoding).float())
-
-        # Third, Calculate Loss
-        criterion = torch.nn.MSELoss()
-        ifst_mse = criterion(ifst_encoding_of_original_input,
-                             ifst_encoding_of_output)
-        print("ifst_mse", ifst_mse.data.cpu().numpy())
-
+        #
+        # # --- Added by Zachary; InferSent inference/Loss ####################
+        # # First, let raw input(sent_batch) get through the model
+        # ifst_encoding_of_original_input = ifst_model.encode(sent_batch)
+        #
+        # # Second, let output sentences get through the model
+        # batch_max = autoencode_logprobs.transpose(0, 1).max(2)[1].\
+        #     data.cpu().numpy()
+        #
+        # pool = mp.Pool(mp.cpu_count())
+        # batch_output_sent = [pool.apply(self.dictionary.rawids2sentence,
+        #                                 args=(max_ids, oov_dict))
+        #                      for max_ids, oov_dict
+        #                      in zip(batch_max, oov_dicts)]
+        # pool.close()
+        # batch_output_sent_encoding = ifst_model.encode(batch_output_sent)
+        #
+        # ifst_encoding_of_original_input = self.device(torch.from_numpy(
+        #     ifst_encoding_of_original_input).float())
+        # ifst_encoding_of_output = self.device(torch.from_numpy(
+        #     batch_output_sent_encoding).float())
+        #
+        # # Third, Calculate Loss
+        # criterion = torch.nn.MSELoss()
+        # ifst_mse = criterion(ifst_encoding_of_original_input,
+        #                      ifst_encoding_of_output)
+        # print("ifst_mse", ifst_mse.data.cpu().numpy())
+        #
         ######################################################################
-
-        # loss = autoencode_loss + length_penalty
+        # loss = autoencode_loss
+        loss = autoencode_loss + length_penalty
         # loss = autoencode_loss + length_penalty + ifst_mse
-        loss = ifst_mse
-        loss.requires_grad = True
-        # print("autoencode_loss: " + str(autoencode_loss.data.cpu().numpy()))
-        # print("length_penalty: " + str(length_penalty.data.cpu().numpy()))
+
+        # loss = ifst_mse
+        # loss.requires_grad = True
+        print("loss: " + str(loss.data.cpu().numpy()))
+
+        print("autoencode_loss: " + str(autoencode_loss.data.cpu().numpy()))
+        print("length_penalty: " + str(length_penalty.data.cpu().numpy()))
 
         loss.backward()
+
+        # ifst_mse.backward()
+
         operations.clip_gradients(
             model=self.model,
             gradient_clipping=self.config.gradient_clipping,
