@@ -221,7 +221,7 @@ class DAETrainer:
                                         args=(max_ids, oov_dict))
                              for max_ids, oov_dict
                              in zip(batch_max, oov_dicts)]
-
+        pool.close()
         batch_output_sent_encoding = ifst_model.encode(batch_output_sent)
 
         ifst_encoding_of_original_input = self.device(torch.from_numpy(
@@ -238,9 +238,6 @@ class DAETrainer:
         ######################################################################
 
         # loss = autoencode_loss + length_penalty
-        # print("autoencode_loss: " + str(autoencode_loss.data.cpu().numpy()))
-        # print("length_penalty: " + str(length_penalty.data.cpu().numpy()))
-
         # loss = autoencode_loss + length_penalty + ifst_mse
         loss = ifst_mse
         loss.requires_grad = True
