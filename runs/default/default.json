@@ -1,5 +1,5 @@
 {
-  "run_name": "pc_4_lstm_nli_2g",
+  "run_name": "ifst-only",
   "dataset_name": "gigaword",
   "length_countdown": "normal",
   "env_config_path": "",
@@ -13,7 +13,7 @@
   "learning_rate_mult_every": 10000,
   "batch_size": 128,
   "max_steps": 100000,
-  "ae_noising": true,
+  "ae_noising": false,
   "ae_noising_kind": "additive",
   "ae_add_noise_perc_per_sent_low": 0.2,
   "ae_add_noise_perc_per_sent_high": 0.5,

@@ -1,3 +1,5 @@
+import multiprocessing as mp
+
 import datetime as dt
 import numpy as np
 import os
@@ -181,8 +183,10 @@ class DAETrainer:
                 init_decoder_with_nli=self.config.init_decoder_with_nli,
                 nli_model=self.nli_model,
                 nli_mapper_mode=self.config.nli_mapper_mode,
-                ae_add_noise_perc_per_sent_low=self.config.ae_add_noise_perc_per_sent_low,
-                ae_add_noise_perc_per_sent_high=self.config.ae_add_noise_perc_per_sent_high,
+                ae_add_noise_perc_per_sent_low=
+                self.config.ae_add_noise_perc_per_sent_low,
+                ae_add_noise_perc_per_sent_high=
+                self.config.ae_add_noise_perc_per_sent_high,
                 ae_add_noise_num_sent=self.config.ae_add_noise_num_sent,
                 length_countdown_mode=self.config.length_countdown,
             )
@@ -207,60 +211,28 @@ class DAETrainer:
         # --- Added by Zachary; InferSent inference/Loss ####################
         # First, let raw input(sent_batch) get through the model
         ifst_encoding_of_original_input = ifst_model.encode(sent_batch)
-        # print("ifst_encoding_of_original_input.shape", ifst_encoding_of_original_input.shape)
-        # print("ifst_encoding_of_original_input", ifst_encoding_of_original_input)
-
-        ifst_encoding_of_output = np.ndarray(shape=(128, 4096),
-                                             dtype=float)
 
         # Second, let output sentences get through the model
-        # TODO: NEED TO VECTORIZE FOLLOWING FOR-LOOP
+        batch_max = autoencode_logprobs.transpose(0, 1).max(2)[1].\
+            data.cpu().numpy()
 
-        # def row_wise_output_sentmaker(row_slice, axis):
-        #     print(row_slice[:, ].shape)
-        #     output_sentence = self.dictionary.rawids2sentence(
-        #         row_slice.max(1)[
-        #             1].data.cpu().numpy(),
-        #         oov_dicts[i],
-        #     )
-        #     return output_sentence
-        #
-        # print(autoencode_logprobs.shape)
-        # print(autoencode_logprobs[:].shape)
+        pool = mp.Pool(mp.cpu_count())
+        batch_output_sent = [pool.apply(self.dictionary.rawids2sentence,
+                                        args=(max_ids, oov_dict))
+                             for max_ids, oov_dict
+                             in zip(batch_max, oov_dicts)]
 
-        # cp_autoencode_logprobs = autoencode_logprobs.cpu().data.numpy()
-        # print("cp", cp_autoencode_logprobs.shape)
-        #
-        # output_batch = np.apply_over_axes(row_wise_output_sentmaker,
-        #                                   cp_autoencode_logprobs,
-        #                                   [1])
-        #
-        # print(output_batch)
-
-        for i in range(128):
-
-            # print("before_max_shape:", autoencode_logprobs[:, i].shape)
-            # print("autoencode_max(1): ", autoencode_logprobs[:, i].max(1))
-            # print("autoencode_max(1)[1]: ", autoencode_logprobs[:, i].max(1)[1])
-
-            output_sent = self.dictionary.rawids2sentence(
-                autoencode_logprobs[:, i].max(1)[
-                    1].data.cpu().numpy(),
-                oov_dicts[i],
-            )
-            output_sent_encoding = ifst_model.encode([output_sent])
-
-            ifst_encoding_of_output[i] = output_sent_encoding
+        batch_output_sent_encoding = ifst_model.encode(batch_output_sent)
 
         ifst_encoding_of_original_input = self.device(torch.from_numpy(
             ifst_encoding_of_original_input).float())
         ifst_encoding_of_output = self.device(torch.from_numpy(
-            ifst_encoding_of_output).float())
+            batch_output_sent_encoding).float())
 
         # Third, Calculate Loss
         criterion = torch.nn.MSELoss()
         ifst_mse = criterion(ifst_encoding_of_original_input,
-                             ifst_encoding_of_output) * 2000
+                             ifst_encoding_of_output)
         print("ifst_mse", ifst_mse.data.cpu().numpy())
 
         ######################################################################
@@ -269,9 +241,11 @@ class DAETrainer:
         # print("autoencode_loss: " + str(autoencode_loss.data.cpu().numpy()))
         # print("length_penalty: " + str(length_penalty.data.cpu().numpy()))
 
-        loss = autoencode_loss + length_penalty + ifst_mse
-        print("autoencode_loss: " + str(autoencode_loss.data.cpu().numpy()))
-        print("length_penalty: " + str(length_penalty.data.cpu().numpy()))
+        # loss = autoencode_loss + length_penalty + ifst_mse
+        loss = ifst_mse
+        loss.requires_grad = True
+        # print("autoencode_loss: " + str(autoencode_loss.data.cpu().numpy()))
+        # print("length_penalty: " + str(length_penalty.data.cpu().numpy()))
 
         loss.backward()
         operations.clip_gradients(
