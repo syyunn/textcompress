@@ -62,7 +62,9 @@ def update_parser(parser, class_with_attributes):
             )
 
 
-def read_parser(parser, class_with_attributes, skip_non_class_attributes=False):
+def read_parser(parser,
+                class_with_attributes,
+                skip_non_class_attributes=False):
     attribute_name_set = {
         attribute.name
         for attribute in class_with_attributes.__attrs_attrs__

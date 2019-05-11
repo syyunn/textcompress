@@ -319,7 +319,11 @@ class NCorpusReader:
 
 
 def read_embeddings(
-        word_vector_path, vocabulary, max_read=None, num_oov=0, verbose=True):
+        word_vector_path,
+        vocabulary,
+        max_read=None,
+        num_oov=0,
+        verbose=True):
     # Unlike undreamt, I'm assuming we have a vocabulary
 
     vocabulary_set = set(vocabulary)
@@ -381,12 +385,19 @@ def tokenize(line):
 
 
 def resolve_embeddings_and_dictionary(
-        data_vocab_path, max_vocab, vector_cache_path, vector_file_name,
-        device, num_oov=0, verbose=True):
+        data_vocab_path,
+        max_vocab,
+        vector_cache_path,
+        vector_file_name,
+        device,
+        num_oov=0,
+        verbose=True):
     vocabulary = load_vocabulary(data_vocab_path)[:max_vocab]
     word_embeddings, dictionary = read_embeddings(
         word_vector_path=vector_cache_path / vector_file_name,
+        # vector cache is glove6B path
         vocabulary=vocabulary,
+        # vocabulary is the list with words till maxvocab numb
         num_oov=num_oov,
         verbose=verbose,
     )
